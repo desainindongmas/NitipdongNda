@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <rect width="600" height="600" fill="#fff3c4"/>
+  <circle cx="300" cy="250" r="140" fill="#ffd13e" opacity="0.18"/>
+  <rect x="180" y="360" width="240" height="14" rx="7" fill="#ffd13e" opacity="0.35"/>
+  <text x="300" y="270" font-family="Arial,sans-serif" font-weight="bold" font-size="34" fill="#3d2b3a" text-anchor="middle">Sunscreen SPF 50</text>
+  <text x="300" y="310" font-family="Arial,sans-serif" font-size="22" fill="#6b5468" text-anchor="middle">30g</text>
+  <text x="300" y="520" font-family="Arial,sans-serif" font-weight="bold" font-size="26" fill="#ffd13e" text-anchor="middle">Rp 55.000</text>
+</svg>

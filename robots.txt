@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /cms.html
+Disallow: /admin.html
+Disallow: /Code.gs

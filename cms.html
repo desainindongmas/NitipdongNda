@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin NitipdongNda!</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/jpeg" href="logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#fff7ec; --pink:#fb6c98; --pink-deep:#e14e7d; --yellow:#ffd13e;
+    --orange:#fd9558; --plum:#3d2b3a; --plum-soft:#6b5468; --card:#fff;
+    --wa:#25d366; --err:#d64545; --ok:#2e9e5b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',system-ui,sans-serif;background:var(--cream);color:var(--plum);line-height:1.6}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  header{background:var(--plum);color:#fff;padding:18px 0}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{font-family:'Baloo 2',sans-serif;font-size:1.3rem}
+  header a{color:var(--yellow);font-weight:800;text-decoration:none;font-size:.9rem}
+  main{padding:32px 0 80px}
+
+  /* login */
+  .login-box{max-width:380px;margin:60px auto;background:var(--card);border:3px solid var(--plum);border-radius:20px;padding:32px;box-shadow:0 6px 0 rgba(61,43,58,.85);text-align:center}
+  .login-box h2{font-family:'Baloo 2',sans-serif;margin-bottom:6px}
+  .login-box p{color:var(--plum-soft);font-size:.9rem;margin-bottom:18px}
+  .login-box input{width:100%;padding:12px 14px;border:2px solid var(--plum);border-radius:12px;font-size:1rem;margin-bottom:12px}
+  .btn{display:inline-block;background:var(--pink);color:#fff;border:2px solid var(--plum);border-radius:12px;padding:12px 24px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1rem;box-shadow:0 3px 0 rgba(61,43,58,.85);cursor:pointer;transition:transform .12s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn.ghost{background:var(--card);color:var(--plum)}
+  .btn.small{padding:8px 14px;font-size:.85rem;border-radius:10px}
+  .btn.danger{background:#ffd9d9;color:var(--err)}
+  .btn.ok{background:var(--ok)}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .err-text{color:var(--err);font-size:.85rem;font-weight:700;margin-top:8px;min-height:1.2em}
+
+  /* toolbar */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  .toolbar h2{font-family:'Baloo 2',sans-serif;font-size:1.5rem}
+  .hint{background:#fff;border:2px dashed var(--orange);border-radius:12px;padding:12px 16px;font-size:.88rem;color:var(--plum-soft);margin-bottom:20px}
+  .hint b{color:var(--plum)}
+
+  /* event list */
+  .ev-list{display:grid;gap:14px}
+  .ev-card{background:var(--card);border:2px solid var(--plum);border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+  .ev-card .t{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.1rem}
+  .ev-card .m{font-size:.85rem;color:var(--plum-soft)}
+  .tag{display:inline-block;font-family:'Baloo 2';font-weight:800;font-size:.7rem;padding:3px 10px;border-radius:999px;border:2px solid var(--plum);margin-right:6px}
+  .tag.live{background:var(--yellow)} .tag.closed{background:#e8e2e6;color:var(--plum-soft)} .tag.custom{background:#dff3e5}
+  .ev-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* forms */
+  .panel{background:var(--card);border:3px solid var(--plum);border-radius:18px;padding:24px;margin-bottom:22px;box-shadow:0 5px 0 rgba(61,43,58,.85)}
+  .panel h3{font-family:'Baloo 2',sans-serif;font-size:1.2rem;margin-bottom:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-weight:800;font-size:.88rem;margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:2px solid var(--plum);border-radius:10px;background:#fffdf8;font-size:.95rem}
+  .field textarea{resize:vertical;min-height:70px}
+  .sep{border:none;border-top:2px dashed rgba(61,43,58,.2);margin:22px 0}
+
+  /* items table */
+  .items{display:grid;gap:10px}
+  .item-row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:#fffdf8;border:2px solid rgba(61,43,58,.2);border-radius:12px;padding:10px 14px}
+  .item-row img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid var(--plum)}
+  .item-row .nm{font-weight:800;font-size:.95rem}
+  .item-row .mt{font-size:.8rem;color:var(--plum-soft)}
+  .item-row .pr{font-weight:800;color:var(--pink-deep);white-space:nowrap}
+  .item-row .acts{display:flex;gap:6px}
+  .item-empty{color:var(--plum-soft);font-size:.9rem;text-align:center;padding:20px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--plum);color:#fff;padding:12px 22px;border-radius:12px;font-weight:700;font-size:.9rem;opacity:0;transition:opacity .25s;z-index:99;pointer-events:none}
+  .toast.show{opacity:1}
+
+  @media (max-width:640px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .ev-card{grid-template-columns:1fr}
+    .item-row{grid-template-columns:48px 1fr;grid-template-rows:auto auto}
+    .item-row .pr{grid-column:2}
+    .item-row .acts{grid-column:2;justify-content:flex-start}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Admin NitipdongNda!</h1>
+    <a href="index.html">← Lihat website</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- LOGIN -->
+  <div id="loginView" hidden>
+    <div class="login-box">
+      <h2>Masuk Admin</h2>
+      <p>Khusus admin. Masukkan password untuk kelola event &amp; katalog.</p>
+      <input type="password" id="pwInput" placeholder="Password" autocomplete="current-password">
+      <button class="btn" id="pwBtn" style="width:100%">Masuk</button>
+      <div class="err-text" id="pwErr"></div>
+      <p style="font-size:.78rem;color:var(--plum-soft);margin-top:14px">Password default: <b>nda2026</b><br>Ganti di baris <code>CMS_PASSWORD</code> pada file ini.</p>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appView" hidden>
+    <div class="hint">
+      <b>Cara pakai:</b> ubah data event &amp; item di sini, lalu simpan. Perubahan tampil di <b>index.html</b>.
+      Mode <b>lokal</b>: data hanya di browser ini. Mode <b>online</b>: tersinkron antar device lewat server.
+    </div>
+
+    <div class="toolbar">
+      <h2>Event <span id="storeBadge" style="font-size:.75rem;font-weight:600;color:var(--plum-soft)"></span></h2>
+      <button class="btn" id="addEventBtn">+ Tambah event</button>
+    </div>
+    <div class="ev-list" id="evList"></div>
+
+    <!-- editor event -->
+    <div class="panel" id="editorPanel" hidden>
+      <h3 id="editorTitle">Edit event</h3>
+      <input type="hidden" id="evTemplateId">
+      <input type="hidden" id="evIsCustom" value="0">
+      <div class="grid2">
+        <div class="field">
+          <label>Judul event</label>
+          <input id="evTitle" placeholder="mis. HSI Tableware Export Quality">
+        </div>
+        <div class="field">
+          <label>Tanggal / periode</label>
+          <input id="evDates" placeholder="mis. 21–29 November 2026">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Status</label>
+          <select id="evStatus">
+            <option value="live">Live / sedang berjalan</option>
+            <option value="closed">Closed / sudah selesai</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Deskripsi singkat</label>
+          <input id="evBlurb" placeholder="Tampil di kartu event & katalog">
+        </div>
+      </div>
+
+      <hr class="sep">
+      <h3 style="margin-bottom:12px">Item katalog</h3>
+      <div class="items" id="itemList"></div>
+      <div class="btn-row">
+        <button class="btn ghost small" id="addItemBtn">+ Tambah item</button>
+      </div>
+
+      <hr class="sep">
+      <div class="btn-row">
+        <button class="btn ok" id="saveEventBtn">Simpan event</button>
+        <button class="btn ghost" id="cancelEditBtn">Batal</button>
+        <button class="btn danger" id="deleteEventBtn">Hapus event</button>
+      </div>
+      <div class="err-text" id="saveErr"></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="catalog.js"></script>
+<script>
+(function(){
+  "use strict";
+  const CMS_PASSWORD = "nda2026";
+  const CMS_KEY = "nitipdongnda_cms_v1";
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+  const rp = n => "Rp" + Math.round(+n||0).toLocaleString("id-ID");
+
+  /* ---------- storage (localStorage + opsional remote) ----------
+     Remote diaktifkan dengan mengisi window.NITIP_API (URL Google Apps
+     Script) di awal file. Tanpa itu, data tetap di localStorage. */
+  const NITIP_API = window.NITIP_API || "https://script.google.com/macros/s/AKfycbyqyP0DJvmvfUWmscJDkKhgx8RUxCZN7ttFT0lcMZSPPmbCO9zmutpxspSA4r3hNE9Vfw/exec";
+  let remoteOK = false;
+  function emptyStore(){ return {events:[], deletedTemplateIds:[]}; }
+  function loadLocal(){
+    try { return JSON.parse(localStorage.getItem(CMS_KEY)) || emptyStore(); }
+    catch(e){ return emptyStore(); }
+  }
+  async function loadStore(){
+    if(NITIP_API){
+      try{
+        const r = await fetch(NITIP_API + "?action=get", {cache:"no-store"});
+        if(r.ok){
+          const d = await r.json();
+          if(d && Array.isArray(d.events)){
+            remoteOK = true;
+            localStorage.setItem(CMS_KEY, JSON.stringify(d));
+            return d;
+          }
+        }
+      }catch(e){ /* remote mati → lokal */ }
+    }
+    return loadLocal();
+  }
+  function saveStore(data){
+    localStorage.setItem(CMS_KEY, JSON.stringify(data));
+    if(NITIP_API && remoteOK){
+      fetch(NITIP_API + "?action=put", {
+        method:"POST", mode:"no-cors",
+        headers:{"Content-Type":"text/plain"},
+        body: JSON.stringify({password: CMS_PASSWORD, data: data})
+      }).catch(()=>{});
+    }
+  }
+
+  // sinkron render: pakai cache lokal (loadStore async dipanggil saat login)
+  function allEvents(){
+    const cms = loadLocal();
+    const custom = cms.events || [];
+    const deleted = new Set(cms.deletedTemplateIds || []);
+    const map = new Map();
+    EVENTS.forEach(e => { if(!deleted.has(e.id)) map.set(e.id, {...e, templateId: e.id, _custom:false}); });
+    custom.forEach(c => {
+      if(c.templateId && map.has(c.templateId)){
+        map.set(c.templateId, {...c, _custom:false, _edited:true});
+      } else {
+        map.set(c.id, {...c, _custom:true});
+      }
+    });
+    return [...map.values()].sort((a,b) => (a.status==="live"?0:1)-(b.status==="live"?0:1));
+  }
+
+  /* ---------- login ---------- */
+  async function checkAuth(){
+    const authed = sessionStorage.getItem("nitip_cms_auth") === "1";
+    if(authed){
+      await loadStore(); // tarik data remote dulu kalau ada
+      $("#loginView").hidden = true; $("#appView").hidden = false;
+      const badge = document.getElementById("storeBadge");
+      if(badge) badge.textContent = remoteOK ? "· online (tersinkron antar device)" : "· lokal (browser ini saja)";
+      renderList();
+    } else {
+      $("#loginView").hidden = false; $("#appView").hidden = true;
+    }
+  }
+  function doLogin(){
+    const pw = $("#pwInput").value;
+    if(pw === CMS_PASSWORD){
+      sessionStorage.setItem("nitip_cms_auth","1");
+      checkAuth();
+    } else {
+      $("#pwErr").textContent = "Password salah. Coba lagi.";
+      $("#pwInput").value = ""; $("#pwInput").focus();
+    }
+  }
+  $("#pwBtn").addEventListener("click", doLogin);
+  $("#pwInput").addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
+
+  /* ---------- toast ---------- */
+  let toastTimer;
+  function toast(msg){
+    const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  /* ---------- list ---------- */
+  function renderList(){
+    const list = allEvents();
+    $("#evList").innerHTML = list.map(ev => `
+      <div class="ev-card">
+        <div>
+          <div class="t">${esc(ev.title)}</div>
+          <div class="m">
+            <span class="tag ${ev.status}">${ev.status==="live"?"Live":"Closed"}</span>
+            ${ev._custom?'<span class="tag custom">Custom</span>':(ev._edited?'<span class="tag custom">Diedit</span>':'')}
+            ${esc(ev.dates||"")} · ${ev.items?ev.items.length:0} item
+          </div>
+        </div>
+        <div class="ev-actions">
+          <button class="btn small ghost" data-edit="${esc(ev.id)}">Edit</button>
+        </div>
+      </div>`).join("");
+    $$("#evList [data-edit]").forEach(b => b.addEventListener("click", () => openEditor(b.dataset.edit)));
+  }
+  function $$(s){ return document.querySelectorAll(s); }
+
+  /* ---------- editor ---------- */
+  let editingId = null;
+  let working = null; // working copy event yang sedang diedit
+  function openEditor(id){
+    const ev = allEvents().find(e => e.id === id);
+    if(!ev) return;
+    editingId = id;
+    working = JSON.parse(JSON.stringify(ev)); // deep copy, lepas dari EVENTS/CMS
+    working.items = working.items || [];
+    $("#editorPanel").hidden = false;
+    $("#editorTitle").textContent = ev._custom ? "Edit event baru" : "Edit event";
+    $("#evTemplateId").value = ev.templateId || "";
+    $("#evIsCustom").value = ev._custom ? "1" : "0";
+    $("#evTitle").value = ev.title || "";
+    $("#evDates").value = ev.dates || "";
+    $("#evStatus").value = ev.status || "closed";
+    $("#evBlurb").value = ev.blurb || "";
+    renderItems(working.items);
+    $("#saveErr").textContent = "";
+    $("#editorPanel").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  function renderItems(items){
+    const box = $("#itemList");
+    if(!items.length){
+      box.innerHTML = `<div class="item-empty">Belum ada item. Klik "Tambah item".</div>`;
+      return;
+    }
+    box.innerHTML = items.map((it,i) => `
+      <div class="item-row" data-idx="${i}">
+        <img src="${esc(it.img||'')}" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="nm">${esc(it.name)}</div>
+          <div class="mt">${esc(it.variant||"-")} · stok ${it.stock===-1||it.stock===undefined?"∞":esc(it.stock)}</div>
+        </div>
+        <div class="pr">${rp(it.price)}</div>
+        <div class="acts">
+          <button class="btn small ghost" data-edititem="${i}">Edit</button>
+          <button class="btn small danger" data-delitem="${i}">Hapus</button>
+        </div>
+      </div>`).join("");
+    box.querySelectorAll("[data-edititem]").forEach(b => b.addEventListener("click", () => editItem(+b.dataset.edititem)));
+    box.querySelectorAll("[data-delitem]").forEach(b => b.addEventListener("click", () => {
+      if(working && working.items) working.items.splice(+b.dataset.delitem, 1);
+      renderItems(working ? working.items : []);
+    }));
+  }
+
+  function editItem(idx){
+    if(!working) return;
+    openItemForm(working.items[idx] || {}, idx);
+  }
+
+
+  function openItemForm(it, idx){
+    // hapus form lama kalau ada
+    const old = $("#itemForm"); if(old) old.remove();
+    const panel = document.createElement("div");
+    panel.className = "panel"; panel.id = "itemForm";
+    panel.innerHTML = `
+      <h3>${idx===null||idx===undefined ? "Tambah item" : "Edit item"}</h3>
+      <div class="grid2">
+        <div class="field"><label>Nama barang</label><input id="itName" value="${esc(it.name||"")}" placeholder="mis. Set Lunch Box 3 Tier"></div>
+        <div class="field"><label>Varian / ukuran</label><input id="itVariant" value="${esc(it.variant||"")}" placeholder="mis. Mutiara / Sage"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Harga (Rp)</label><input id="itPrice" type="number" min="0" value="${it.price||""}" placeholder="189000"></div>
+        <div class="field"><label>Stok (-1 = tak terbatas)</label><input id="itStock" type="number" value="${it.stock===undefined?-1:it.stock}"></div>
+      </div>
+      <div class="field">
+        <label>Foto produk</label>
+        <input type="file" id="itImg" accept="image/*">
+        <div id="itImgPrev" style="margin-top:8px">${it.img?`<img src="${esc(it.img.startsWith("data:")?it.img:"img/products/"+it.img)}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:2px solid var(--plum)">`:"<span style='font-size:.85rem;color:var(--plum-soft)'>Belum ada foto</span>"}</div>
+        <div style="font-size:.78rem;color:var(--plum-soft);margin-top:4px">Foto dikompres otomatis maks 1200px. Format JPG/PNG.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn ok" id="itSave">Simpan item</button>
+        <button class="btn ghost" id="itCancel">Batal</button>
+      </div>`;
+    $("#editorPanel").appendChild(panel);
+    panel.scrollIntoView({behavior:"smooth",block:"center"});
+
+    $("#itImg").addEventListener("change", e => {
+      const f = e.target.files[0]; if(!f) return;
+      compressImage(f, url => {
+        $("#itImgPrev").innerHTML = `<img src="${url}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:2px solid var(--plum)">`;
+        panel.dataset.newImg = url;
+      });
+    });
+    $("#itSave").addEventListener("click", () => {
+      const name = $("#itName").value.trim();
+      const price = parseInt($("#itPrice").value,10);
+      if(!name){ toast("Nama barang wajib diisi"); return; }
+      if(isNaN(price) || price < 0){ toast("Harga harus angka valid"); return; }
+      const newImg = panel.dataset.newImg || null;
+      const data = {
+        id: it.id || ("it-" + Date.now() + "-" + Math.floor(Math.random()*999)),
+        name,
+        variant: $("#itVariant").value.trim(),
+        price,
+        stock: parseInt($("#itStock").value,10) || -1,
+        img: newImg || (it.img && !it.img.startsWith("data:") ? it.img : (newImg || it.img || ""))
+      };
+      // kalau foto lama data-url dan tidak diganti, pertahankan
+      if(!newImg && it.img && it.img.startsWith("data:")) data.img = it.img;
+      if(!newImg && it.img && !it.img.startsWith("data:")) data.img = it.img;
+
+      if(!working.items) working.items = [];
+      if(idx===null||idx===undefined) working.items.push(data);
+      else working.items[idx] = data;
+      renderItems(working.items);
+      panel.remove();
+      toast("Item tersimpan");
+    });
+  }
+
+  function compressImage(file, cb){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if(Math.max(w,h) > MAX){ const r = MAX/Math.max(w,h); w = Math.round(w*r); h = Math.round(h*r); }
+        const c = document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        cb(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  $("#addItemBtn").addEventListener("click", () => openItemForm({}, null));
+
+  /* ---------- event save / delete ---------- */
+  $("#addEventBtn").addEventListener("click", () => {
+    // buat event kosong lalu langsung buka editor
+    const id = "custom-" + Date.now();
+    const cms = loadLocal();
+    const stub = { id, templateId:"", custom:true, title:"Event baru", dates:"", status:"closed", blurb:"", items:[] };
+    cms.events.push(stub); saveStore(cms);
+    renderList();
+    openEditor(id);
+  });
+
+  $("#saveEventBtn").addEventListener("click", () => {
+    const title = $("#evTitle").value.trim();
+    if(!title){ $("#saveErr").textContent = "Judul event wajib diisi."; return; }
+    const isCustom = $("#evIsCustom").value === "1";
+    const templateId = $("#evTemplateId").value || "";
+
+    const data = {
+      id: isCustom ? editingId : templateId,
+      templateId: isCustom ? "" : templateId,
+      custom: isCustom,
+      title,
+      dates: $("#evDates").value.trim(),
+      status: $("#evStatus").value,
+      blurb: $("#evBlurb").value.trim(),
+      items: working ? (working.items || []) : []
+    };
+    if(isCustom) data.id = editingId;
+
+    // simpan ke CMS storage
+    const cms = loadLocal();
+    cms.events = cms.events.filter(c => {
+      if(isCustom) return c.id !== editingId;
+      return c.templateId !== templateId;
+    });
+    cms.events.push(data);
+    saveStore(cms);
+
+    toast("Event tersimpan. Refresh index.html untuk melihatnya.");
+    renderList();
+  });
+
+  $("#deleteEventBtn").addEventListener("click", () => {
+    if(!working) return;
+    const isCustom = $("#evIsCustom").value === "1";
+    const label = isCustom ? "event custom ini" : "event template ini";
+    if(!confirm(`Yakin hapus ${label}?`)) return;
+    const cms = loadLocal();
+    if(!cms.deletedTemplateIds) cms.deletedTemplateIds = [];
+    if(isCustom){
+      cms.events = cms.events.filter(c => c.id !== editingId);
+    } else {
+      const tid = $("#evTemplateId").value;
+      cms.events = cms.events.filter(c => c.templateId !== tid);
+      if(tid && !cms.deletedTemplateIds.includes(tid)) cms.deletedTemplateIds.push(tid);
+    }
+    saveStore(cms);
+    $("#editorPanel").hidden = true;
+    toast("Event dihapus.");
+    renderList();
+  });
+
+  $("#cancelEditBtn").addEventListener("click", () => {
+    $("#editorPanel").hidden = true;
+  });
+
+  /* ---------- init ---------- */
+  checkAuth();
+})();
+</script>
+</body>
+</html>
