@@ -159,6 +159,22 @@
         <button class="btn ghost small" id="addItemBtn">+ Tambah item</button>
       </div>
 
+      <div class="panel" id="bulkPanel" style="margin-top:14px">
+        <h3>Import massal (CSV / JSON)</h3>
+        <p style="font-size:.85rem;color:var(--plum-soft);margin-bottom:10px">
+          Paste data dari Excel/Google Sheets. Format CSV: <code>nama; varian; harga; stok</code> (boleh pakai koma). Atau JSON array.
+        </p>
+        <div class="field">
+          <textarea id="bulkInput" rows="6" placeholder='Contoh CSV:&#10;Set Lunch Box;Mutiara;189000;-1&#10;Glass Jar 500ml;Bening;59000;-1&#10;&#10;atau JSON:&#10;[{"name":"Set Lunch Box","variant":"Mutiara","price":189000,"stock":-1}]'></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost small" id="bulkPreviewBtn">Preview</button>
+          <button class="btn ok small" id="bulkApplyBtn" disabled>Tambahkan ke event</button>
+        </div>
+        <div id="bulkPreview" style="margin-top:12px"></div>
+        <div class="err-text" id="bulkErr"></div>
+      </div>
+
       <hr class="sep">
       <div class="btn-row">
         <button class="btn ok" id="saveEventBtn">Simpan event</button>
@@ -489,6 +505,86 @@
 
   $("#cancelEditBtn").addEventListener("click", () => {
     $("#editorPanel").hidden = true;
+  });
+
+  /* ---------- bulk import ---------- */
+  let bulkParsed = [];
+  function parsePrice(s){
+    if(s==null) return NaN;
+    // "189.000" atau "189000" atau "189,000" → 189000
+    let n = String(s).replace(/[Rr][Pp]?\s?/g,"").replace(/[^\d]/g,"");
+    return n ? parseInt(n,10) : NaN;
+  }
+  function parseBulk(text){
+    text = (text||"").trim();
+    if(!text) return [];
+    // coba JSON dulu
+    if(text.startsWith("[") || text.startsWith("{")){
+      try{
+        let j = JSON.parse(text);
+        if(!Array.isArray(j)) j = [j];
+        return j.map(o => ({
+          name: String(o.name||o.nama||"").trim(),
+          variant: String(o.variant||o.varian||"").trim(),
+          price: parsePrice(o.price!==undefined?o.price:(o.harga!==undefined?o.harga:"")),
+          stock: parseInt(o.stock!==undefined?o.stock:(o.stok!==undefined?o.stok:-1),10),
+          img: o.img||""
+        })).filter(x=>x.name);
+      }catch(e){ /* fallthrough ke CSV */ }
+    }
+    // CSV/TSV: delimiter auto (tab > ; > ,)
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if(!lines.length) return [];
+    // deteksi delimiter dari baris pertama
+    const first = lines[0];
+    const delim = first.includes("\t") ? "\t" : (first.split(";").length >= first.split(",").length ? ";" : ",");
+    const out = [];
+    for(const line of lines){
+      // skip header
+      if(/^name|nama|barang|item/i.test(line.trim())) continue;
+      const cols = line.split(delim).map(c=>c.trim());
+      if(cols.length < 3) continue;
+      const name = cols[0];
+      const variant = cols[1] || "";
+      const price = parsePrice(cols[2]);
+      const stock = cols[3]!==undefined ? (parseInt(cols[3],10)||-1) : -1;
+      const img = cols[4]||"";
+      if(name && !isNaN(price)) out.push({name, variant, price, stock, img});
+    }
+    return out;
+  }
+  function renderBulkPreview(){
+    const box = $("#bulkPreview");
+    if(!bulkParsed.length){ box.innerHTML=""; return; }
+    box.innerHTML = `<div style="font-size:.85rem;font-weight:700;margin-bottom:8px">${bulkParsed.length} item terbaca:</div>` +
+      `<div style="max-height:220px;overflow:auto;border:1px solid rgba(61,43,58,.2);border-radius:10px">` +
+      bulkParsed.map(it=>`<div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(61,43,58,.08);font-size:.85rem"><b style="flex:1">${esc(it.name)}</b><span style="color:var(--plum-soft)">${esc(it.variant)}</span><span style="font-weight:800;color:var(--pink-deep);white-space:nowrap">${rp(it.price)}</span></div>`).join("") +
+      `</div>`;
+    $("#bulkApplyBtn").disabled = false;
+  }
+  $("#bulkPreviewBtn").addEventListener("click", ()=>{
+    $("#bulkErr").textContent = "";
+    bulkParsed = parseBulk($("#bulkInput").value);
+    if(!bulkParsed.length){ $("#bulkErr").textContent = "Tidak ada data valid terbaca. Cek format (nama; varian; harga; stok)."; $("#bulkApplyBtn").disabled = true; $("#bulkPreview").innerHTML=""; return; }
+    renderBulkPreview();
+  });
+  $("#bulkApplyBtn").addEventListener("click", ()=>{
+    if(!working) { toast("Buka editor event dulu"); return; }
+    if(!working.items) working.items = [];
+    const existing = new Set(working.items.map(i=>i.name.toLowerCase()));
+    let added = 0, skipped = 0;
+    for(const it of bulkParsed){
+      if(existing.has(it.name.toLowerCase())){ skipped++; continue; }
+      working.items.push({
+        id: "it-" + Date.now() + "-" + Math.floor(Math.random()*9999),
+        name: it.name, variant: it.variant, price: it.price,
+        stock: isNaN(it.stock)?-1:it.stock, img: it.img||""
+      });
+      added++;
+    }
+    renderItems(working.items);
+    toast(`Ditambahkan ${added} item${skipped?`, ${skipped} duplikat dilewati`:""}. Klik "Simpan event" untuk menyimpan.`);
+    $("#bulkInput").value=""; bulkParsed=[]; $("#bulkPreview").innerHTML=""; $("#bulkApplyBtn").disabled=true;
   });
 
   /* ---------- init ---------- */
