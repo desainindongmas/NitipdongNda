@@ -274,6 +274,13 @@
   @media (min-width:861px){
     .mobile-bar{display:none}
   }
+  /* closed states */
+  .event-card.is-closed{opacity:.75;cursor:default}
+  .event-card.is-closed:hover{transform:none;box-shadow:var(--shadow-sticker)}
+  .prod.is-closed{opacity:.6}
+  .prod.is-closed .prod-img{filter:grayscale(.4)}
+  .add-btn.is-closed{background:#e8e2e6;color:var(--plum-soft);cursor:not-allowed;box-shadow:none}
+  .add-btn.is-closed:hover{transform:none;box-shadow:none}
 
   .reveal{opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s ease}
   .reveal.in{opacity:1;transform:none}
@@ -394,6 +401,7 @@
                 <textarea id="fAddr" rows="3" placeholder="Jalan, RT/RW, kelurahan, kecamatan, kota, kode pos"></textarea>
                 <div class="err-msg">Alamat lengkap wajib diisi.</div>
               </div>
+              <p id="coClosedWarn" style="display:none;background:#ffd9d9;border:2px solid var(--err);border-radius:10px;padding:10px 14px;font-size:.85rem;font-weight:700;color:var(--err);margin-bottom:14px">Keranjang berisi item dari event yang sudah selesai. Hapus item itu dulu supaya bisa lanjut checkout.</p>
               <button class="checkout-btn" id="toStep2">Lanjut ke pembayaran</button>
             </div>
 
@@ -478,6 +486,7 @@
   <div class="drawer-body" id="cartItems"></div>
   <div class="drawer-foot">
     <div class="drawer-total"><span>Total</span><span id="drawerTotal">Rp0</span></div>
+    <p id="cartClosedWarn" style="display:none;background:#ffd9d9;border:2px solid var(--err);border-radius:10px;padding:10px 14px;font-size:.85rem;font-weight:700;color:var(--err);margin-bottom:12px">Ada item dari event yang sudah selesai di keranjang. Hapus dulu item itu untuk bisa checkout.</p>
     <button class="checkout-btn" id="drawerCheckout" disabled>Checkout</button>
     <button class="continue-btn" id="drawerContinue">Lanjut belanja</button>
   </div>
@@ -571,15 +580,19 @@
   /* ================= Home: event list ================= */
   function renderEvents(){
     const el = $("#eventList");
-    el.innerHTML = EVENTS.map(ev => `
-      <button class="event-card" data-event="${esc(ev.id)}">
-        <span class="tag ${ev.status}">${ev.status === "live" ? "Sedang live" : "Sudah closed"}</span>
+    el.innerHTML = EVENTS.map(ev => {
+      const closed = ev.status !== "live";
+      return `
+      <div class="event-card ${closed ? "is-closed" : ""}" ${closed ? "" : `data-event="${esc(ev.id)}"`} role="${closed ? "note" : "button"}" ${closed ? 'aria-disabled="true"' : ""}>
+        <span class="tag ${ev.status}">${ev.status === "live" ? "Sedang live" : "Sudah selesai"}</span>
         <h3>${esc(ev.title)}</h3>
         <span class="dates">${esc(ev.dates)}</span>
         <p>${esc(ev.blurb)}</p>
-        <span class="go">Lihat katalog →</span>
-      </button>
-    `).join("");
+        ${closed
+          ? `<span class="go" style="color:var(--plum-soft)">Event sudah selesai</span>`
+          : `<span class="go">Lihat katalog →</span>`}
+      </div>`;
+    }).join("");
     el.querySelectorAll("[data-event]").forEach(b =>
       b.addEventListener("click", () => openCatalog(b.dataset.event))
     );
@@ -587,6 +600,13 @@
 
   /* ================= Catalog ================= */
   function openCatalog(eventId){
+    const ev = findEvent(eventId);
+    if(!ev){ showView("home"); return; }
+    if(ev.status !== "live"){
+      alert("Event ini sudah selesai.");
+      showView("home");
+      return;
+    }
     currentEventId = eventId;
     showView("catalog");
   }
@@ -594,36 +614,44 @@
   function renderCatalog(){
     const ev = findEvent(currentEventId);
     if(!ev){ showView("home"); return; }
+    const closed = ev.status !== "live";
     $("#crumbEvent").textContent = ev.title;
     $("#catTitle").textContent = ev.title;
     $("#catBlurb").textContent = ev.blurb + " (" + ev.dates + ")";
-    $("#catStatus").textContent = ev.status === "live" ? "Event sedang berlangsung" : "Event sudah closed";
+    $("#catStatus").textContent = closed ? "Event sudah selesai" : "Event sedang berlangsung";
+    $("#catStatus").style.color = closed ? "var(--plum-soft)" : "";
 
     const inCart = (cart[ev.id] || {});
     $("#catalogGrid").innerHTML = ev.items.map(it => {
       const qty = inCart[it.id] ? inCart[it.id].qty : 0;
+      const btnLabel = closed
+        ? "Event sudah selesai"
+        : (qty ? `Di keranjang (${qty}) · tambah` : "Tambah ke keranjang");
       return `
-      <article class="prod">
+      <article class="prod ${closed ? "is-closed" : ""}">
         <div class="prod-img">${productImg(it)}</div>
         <div class="prod-body">
           <div class="prod-name">${esc(it.name)}</div>
           ${it.variant ? `<div class="prod-variant">${esc(it.variant)}</div>` : ""}
           <div class="prod-price">${rp(it.price)}</div>
-          <button class="add-btn ${qty ? "prod-in-cart" : ""}" data-add="${esc(it.id)}">
-            ${qty ? `Di keranjang (${qty}) · tambah` : "Tambah ke keranjang"}
+          <button class="add-btn ${closed ? "is-closed" : (qty ? "prod-in-cart" : "")}" data-add="${esc(it.id)}" ${closed ? "disabled" : ""}>
+            ${btnLabel}
           </button>
         </div>
       </article>`;
     }).join("");
 
-    $$("#catalogGrid [data-add]").forEach(btn =>
-      btn.addEventListener("click", () => addToCart(ev.id, btn.dataset.add))
-    );
+    if(!closed){
+      $$("#catalogGrid [data-add]").forEach(btn =>
+        btn.addEventListener("click", () => addToCart(ev.id, btn.dataset.add))
+      );
+    }
   }
 
   function addToCart(eventId, itemId){
     const ev = findEvent(eventId), it = findItem(eventId, itemId);
     if(!ev || !it) return;
+    if(ev.status !== "live"){ alert("Event ini sudah selesai, tidak bisa dipesan."); return; }
     if(!cart[eventId]) cart[eventId] = {};
     if(!cart[eventId][itemId]){
       cart[eventId][itemId] = { qty:0, name:it.name, variant:it.variant||"", price:it.price, img:it.img||"", eventTitle:ev.title };
@@ -636,14 +664,24 @@
   }
 
   /* ================= Cart drawer ================= */
+  function cartHasClosedItems(){
+    for(const evId of Object.keys(cart)){
+      const ev = findEvent(evId);
+      if(ev && ev.status !== "live" && Object.keys(cart[evId]||{}).length) return true;
+    }
+    return false;
+  }
   function updateCartUI(){
     const n = cartCount();
+    const closedBlock = cartHasClosedItems();
     const badge = $("#cartCount"), mb = $("#mbCount");
     badge.hidden = n === 0; badge.textContent = n;
     mb.textContent = n;
     $("#drawerTotal").textContent = rp(cartSubtotal());
     $("#mbTotal").textContent = rp(cartSubtotal());
-    $("#drawerCheckout").disabled = n === 0;
+    $("#drawerCheckout").disabled = n === 0 || closedBlock;
+    const warn = $("#cartClosedWarn");
+    if(warn) warn.style.display = closedBlock ? "block" : "none";
     renderCartItems();
     if($("#view-checkout").classList.contains("active")) renderCheckout();
   }
@@ -709,6 +747,11 @@
     $("#coEmpty").hidden = hasItems;
     $("#coMain").hidden = !hasItems;
     if(!hasItems) return;
+    // blokir kalau ada item event closed
+    const closedBlock = cartHasClosedItems();
+    const warnEl = $("#coClosedWarn");
+    if(warnEl) warnEl.style.display = closedBlock ? "block" : "none";
+    $("#toStep2").disabled = closedBlock;
 
     // ringkasan item
     let html = "";
