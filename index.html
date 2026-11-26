@@ -633,7 +633,7 @@
         <div class="prod-body">
           <div class="prod-name">${esc(it.name)}</div>
           ${it.variant ? `<div class="prod-variant">${esc(it.variant)}</div>` : ""}
-          <div class="prod-price">${rp(it.price)}</div>
+          <div class="prod-price">${it.price ? rp(it.price) : "Tanya harga"}</div>
           <button class="add-btn ${closed ? "is-closed" : (qty ? "prod-in-cart" : "")}" data-add="${esc(it.id)}" ${closed ? "disabled" : ""}>
             ${btnLabel}
           </button>
@@ -702,7 +702,7 @@
           <div>
             <div class="ci-name">${esc(it.name)}</div>
             <div class="ci-variant">${esc(it.variant)} · ${esc(title)}</div>
-            <div class="ci-price">${rp(it.price)} × ${it.qty} = ${rp(it.price*it.qty)}</div>
+            <div class="ci-price">${it.price ? rp(it.price) : "Tanya harga"} × ${it.qty} = ${rp(it.price*it.qty)}</div>
             <div class="qty">
               <button data-dec="${esc(evId)}|${esc(itemId)}" aria-label="Kurangi">−</button>
               <span>${it.qty}</span>
