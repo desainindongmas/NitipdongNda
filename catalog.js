@@ -1,5 +1,5 @@
 // ============================================================
-// KATALOG NITIPDONGNDA! — generated dari katalog_visual.xlsx
+// KATALOG NITIPDONGNDA! — generated dari katalog_visual.xlsx (media embedded)
 // ============================================================
 
 const EVENTS = [
