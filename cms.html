@@ -355,7 +355,7 @@
     }
     box.innerHTML = items.map((it,i) => `
       <div class="item-row" data-idx="${i}">
-        <img src="${esc(it.img||'')}" alt="" onerror="this.style.display='none'">
+        <img src="${esc(it.img ? (it.img.startsWith("data:") ? it.img : "img/products/"+it.img) : "")}" alt="" onerror="this.style.display='none'">
         <div>
           <div class="nm">${esc(it.name)}</div>
           <div class="mt">${esc(it.variant||"-")} · stok ${it.stock===-1||it.stock===undefined?"∞":esc(it.stock)}</div>
