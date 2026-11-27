@@ -160,12 +160,24 @@
       </div>
 
       <div class="panel" id="bulkPanel" style="margin-top:14px">
-        <h3>Import massal (CSV / JSON)</h3>
+        <h3>Import massal (CSV / JSON + foto)</h3>
         <p style="font-size:.85rem;color:var(--plum-soft);margin-bottom:10px">
-          Paste data dari Excel/Google Sheets. Format CSV: <code>nama; varian; harga; stok</code> (boleh pakai koma). Atau JSON array.
+          Upload file CSV/JSON <b>dan</b> foto sekaligus. Foto dicocokkan ke item berdasarkan nama file
+          (mis. <code>Set Lunch Box 3 Tier.jpg</code> → item "Set Lunch Box 3 Tier").
+          Foto di-crop 1:1, kompres ≤1200px. Video: hanya thumbnail.
         </p>
         <div class="field">
-          <textarea id="bulkInput" rows="6" placeholder='Contoh CSV:&#10;Set Lunch Box;Mutiara;189000;-1&#10;Glass Jar 500ml;Bening;59000;-1&#10;&#10;atau JSON:&#10;[{"name":"Set Lunch Box","variant":"Mutiara","price":189000,"stock":-1}]'></textarea>
+          <label style="font-size:.82rem;font-weight:700">1. File data (CSV / JSON)</label>
+          <input type="file" id="bulkFile" accept=".csv,.tsv,.txt,.json">
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn ghost small" id="bulkTemplateBtn" type="button">⬇ Download template CSV</button>
+          </div>
+          <textarea id="bulkInput" rows="5" placeholder='Atau paste langsung:&#10;nama;varian;harga;stok&#10;Set Lunch Box;Mutiara;189000;-1&#10;&#10;JSON: [{"name":"...","variant":"...","price":189000,"stock":-1}]'></textarea>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label style="font-size:.82rem;font-weight:700">2. File foto/video (opsional, multi-select)</label>
+          <input type="file" id="mediaInput" accept="image/*,video/*" multiple>
+          <div id="mediaStatus" style="font-size:.85rem;color:var(--plum-soft);margin-top:6px"></div>
         </div>
         <div class="btn-row">
           <button class="btn ghost small" id="bulkPreviewBtn">Preview</button>
@@ -173,25 +185,6 @@
         </div>
         <div id="bulkPreview" style="margin-top:12px"></div>
         <div class="err-text" id="bulkErr"></div>
-      </div>
-
-      <div class="panel" id="mediaPanel" style="margin-top:14px">
-        <h3>Upload foto massal</h3>
-        <p style="font-size:.85rem;color:var(--plum-soft);margin-bottom:10px">
-          Pilih banyak foto sekaligus. Setiap foto di-crop 1:1 (rasio kartu produk), produk tidak terpotong,
-          dikompres otomatis ≤1200px. Nama file menjadi nama barang — pastikan nama file = nama item di katalog
-          (mis. <code>Set Lunch Box 3 Tier.jpg</code>), atau kosongkan nama barang di CSV dan pakai nama file.
-          Video: hanya thumbnail yang dipakai (file video tidak diupload).
-        </p>
-        <div class="field">
-          <input type="file" id="mediaInput" accept="image/*,video/*" multiple>
-        </div>
-        <div id="mediaStatus" style="font-size:.85rem;color:var(--plum-soft);margin-top:8px"></div>
-        <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
-        <div class="btn-row" style="margin-top:10px">
-          <button class="btn ok small" id="mediaApplyBtn" disabled>Terapkan ke item yang namanya cocok</button>
-        </div>
-        <div class="err-text" id="mediaErr"></div>
       </div>
 
       <hr class="sep">
@@ -526,18 +519,19 @@
     $("#editorPanel").hidden = true;
   });
 
-  /* ---------- bulk import ---------- */
+  /* ---------- unified bulk import (data + media) ---------- */
   let bulkParsed = [];
+  let mediaFiles = new Map(); // normName -> {dataUrl, fileName, isVideo}
+  const SQ = 1200;
+
   function parsePrice(s){
     if(s==null) return NaN;
-    // "189.000" atau "189000" atau "189,000" → 189000
     let n = String(s).replace(/[Rr][Pp]?\s?/g,"").replace(/[^\d]/g,"");
     return n ? parseInt(n,10) : NaN;
   }
   function parseBulk(text){
     text = (text||"").trim();
     if(!text) return [];
-    // coba JSON dulu
     if(text.startsWith("[") || text.startsWith("{")){
       try{
         let j = JSON.parse(text);
@@ -549,17 +543,14 @@
           stock: parseInt(o.stock!==undefined?o.stock:(o.stok!==undefined?o.stok:-1),10),
           img: o.img||""
         })).filter(x=>x.name);
-      }catch(e){ /* fallthrough ke CSV */ }
+      }catch(e){ }
     }
-    // CSV/TSV: delimiter auto (tab > ; > ,)
     const lines = text.split(/\r?\n/).filter(l=>l.trim());
     if(!lines.length) return [];
-    // deteksi delimiter dari baris pertama
     const first = lines[0];
     const delim = first.includes("\t") ? "\t" : (first.split(";").length >= first.split(",").length ? ";" : ",");
     const out = [];
     for(const line of lines){
-      // skip header
       if(/^name|nama|barang|item/i.test(line.trim())) continue;
       const cols = line.split(delim).map(c=>c.trim());
       if(cols.length < 3) continue;
@@ -572,43 +563,6 @@
     }
     return out;
   }
-  function renderBulkPreview(){
-    const box = $("#bulkPreview");
-    if(!bulkParsed.length){ box.innerHTML=""; return; }
-    box.innerHTML = `<div style="font-size:.85rem;font-weight:700;margin-bottom:8px">${bulkParsed.length} item terbaca:</div>` +
-      `<div style="max-height:220px;overflow:auto;border:1px solid rgba(61,43,58,.2);border-radius:10px">` +
-      bulkParsed.map(it=>`<div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(61,43,58,.08);font-size:.85rem"><b style="flex:1">${esc(it.name)}</b><span style="color:var(--plum-soft)">${esc(it.variant)}</span><span style="font-weight:800;color:var(--pink-deep);white-space:nowrap">${rp(it.price)}</span></div>`).join("") +
-      `</div>`;
-    $("#bulkApplyBtn").disabled = false;
-  }
-  $("#bulkPreviewBtn").addEventListener("click", ()=>{
-    $("#bulkErr").textContent = "";
-    bulkParsed = parseBulk($("#bulkInput").value);
-    if(!bulkParsed.length){ $("#bulkErr").textContent = "Tidak ada data valid terbaca. Cek format (nama; varian; harga; stok)."; $("#bulkApplyBtn").disabled = true; $("#bulkPreview").innerHTML=""; return; }
-    renderBulkPreview();
-  });
-  $("#bulkApplyBtn").addEventListener("click", ()=>{
-    if(!working) { toast("Buka editor event dulu"); return; }
-    if(!working.items) working.items = [];
-    const existing = new Set(working.items.map(i=>i.name.toLowerCase()));
-    let added = 0, skipped = 0;
-    for(const it of bulkParsed){
-      if(existing.has(it.name.toLowerCase())){ skipped++; continue; }
-      working.items.push({
-        id: "it-" + Date.now() + "-" + Math.floor(Math.random()*9999),
-        name: it.name, variant: it.variant, price: it.price,
-        stock: isNaN(it.stock)?-1:it.stock, img: it.img||""
-      });
-      added++;
-    }
-    renderItems(working.items);
-    toast(`Ditambahkan ${added} item${skipped?`, ${skipped} duplikat dilewati`:""}. Klik "Simpan event" untuk menyimpan.`);
-    $("#bulkInput").value=""; bulkParsed=[]; $("#bulkPreview").innerHTML=""; $("#bulkApplyBtn").disabled=true;
-  });
-
-  /* ---------- bulk media upload ---------- */
-  let mediaQueue = [];
-  const SQ = 1200;
 
   function fileBaseName(name){ return name.replace(/\.[^.]+$/,"").trim(); }
   function normName(s){ return String(s||"").toLowerCase().replace(/\.[^.]+$/,"").replace(/[^a-z0-9\s]/g,"").replace(/\s+/g," ").trim(); }
@@ -659,51 +613,91 @@
       v.src = url;
     });
   }
-  function matchItemName(fileName){
-    if(!working || !working.items) return null;
-    const target = normName(fileBaseName(fileName));
-    for(const it of working.items){ if(normName(it.name) === target) return it.name; }
-    return null;
-  }
+
   async function handleMediaFiles(fileList){
-    const files = [...fileList];
-    if(!files.length) return;
-    $("#mediaErr").textContent = "";
-    $("#mediaStatus").textContent = `Memproses ${files.length} file…`;
-    $("#mediaApplyBtn").disabled = true;
-    mediaQueue = [];
-    let done = 0, failed = 0;
+    const files = [...fileList].filter(f=>f.type.startsWith("image/")||f.type.startsWith("video/"));
+    if(!files.length){ $("#mediaStatus").textContent="Tidak ada file media valid."; return; }
+    $("#mediaStatus").textContent = `Memproses ${files.length} media…`;
+    let done=0, failed=0;
     for(const f of files){
       try{
         const isVideo = f.type.startsWith("video/");
         const dataUrl = isVideo ? await processVideoFile(f) : await processImageFile(f);
-        mediaQueue.push({ fileName:f.name, dataUrl, matchedItemName:matchItemName(f.name), isVideo });
+        const key = normName(fileBaseName(f.name));
+        mediaFiles.set(key, {dataUrl, fileName:f.name, isVideo});
         done++;
       }catch(e){ failed++; }
       $("#mediaStatus").textContent = `Memproses… ${done}/${files.length}` + (failed?` (${failed} gagal)`:"");
     }
-    $("#mediaStatus").textContent = `${done} file siap${failed?`, ${failed} gagal`:""}. Cocok ke item: ${mediaQueue.filter(m=>m.matchedItemName).length}/${mediaQueue.length}.`;
-    $("#mediaPreview").innerHTML = mediaQueue.map(m=>`
-      <div style="width:72px;text-align:center">
-        <img src="${m.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid ${m.matchedItemName?"var(--ok)":"var(--err)"}">
-        <div style="font-size:.62rem;word-break:break-all;margin-top:2px">${esc(m.fileName.slice(0,20))}${m.isVideo?" 🎬":""}</div>
-        <div style="font-size:.62rem;color:${m.matchedItemName?"var(--ok)":"var(--err)"}">${m.matchedItemName?"✓":"✗ tak cocok"}</div>
-      </div>`).join("");
-    $("#mediaApplyBtn").disabled = !mediaQueue.some(m=>m.matchedItemName);
+    $("#mediaStatus").textContent = `${done} media siap${failed?`, ${failed} gagal`:""}.`;
+    renderBulkPreview();
   }
+  function countMediaMatches(){
+    if(!bulkParsed.length) return 0;
+    return bulkParsed.filter(it=>mediaFiles.has(normName(it.name))).length;
+  }
+
+  function renderBulkPreview(){
+    const box = $("#bulkPreview");
+    if(!bulkParsed.length){ box.innerHTML=""; $("#bulkApplyBtn").disabled=true; return; }
+    const matched = countMediaMatches();
+    box.innerHTML = `<div style="font-size:.85rem;font-weight:700;margin-bottom:8px">${bulkParsed.length} item terbaca · ${matched} dengan foto:</div>` +
+      `<div style="max-height:280px;overflow:auto;border:1px solid rgba(61,43,58,.2);border-radius:10px">` +
+      bulkParsed.map(it=>{
+        const m = mediaFiles.get(normName(it.name));
+        return `<div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(61,43,58,.08);font-size:.85rem;align-items:center">
+          ${m?`<img src="${m.dataUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:2px solid var(--ok)">`:`<div style="width:44px;height:44px;border-radius:8px;background:#f6ead9;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--plum-soft);text-align:center">no img</div>`}
+          <div style="flex:1"><b>${esc(it.name)}</b><div style="color:var(--plum-soft);font-size:.78rem">${esc(it.variant)}</div></div>
+          <span style="font-weight:800;color:var(--pink-deep);white-space:nowrap">${it.price?rp(it.price):"Tanya harga"}</span>
+        </div>`;
+      }).join("") +
+      `</div>`;
+    $("#bulkApplyBtn").disabled = false;
+  }
+
+  $("#bulkTemplateBtn").addEventListener("click", ()=>{
+    const csv = "nama;varian;harga;stok\nSet Lunch Box 3 Tier;Mutiara / Sage;189000;-1\nGlass Jar 500ml;Bening / Frosted;59000;-1\nCeramic Bowl Set 4 pcs;Cream;145000;-1\nCutting Board Bamboo;Natural;75000;-1\nDinner Plate 26cm;Putih / Navy;68000;-1\n";
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "template-katalog.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $("#bulkFile").addEventListener("change", e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ $("#bulkInput").value = reader.result; $("#bulkErr").textContent=""; };
+    reader.readAsText(f);
+  });
   $("#mediaInput").addEventListener("change", e => handleMediaFiles(e.target.files));
-  $("#mediaApplyBtn").addEventListener("click", ()=>{
-    if(!working || !working.items) { toast("Buka editor event dulu"); return; }
-    let applied = 0;
-    for(const m of mediaQueue){
-      if(!m.matchedItemName) continue;
-      const it = working.items.find(i=>i.name===m.matchedItemName);
-      if(it){ it.img = m.dataUrl; applied++; }
+  $("#bulkPreviewBtn").addEventListener("click", ()=>{
+    $("#bulkErr").textContent = "";
+    bulkParsed = parseBulk($("#bulkInput").value);
+    if(!bulkParsed.length){ $("#bulkErr").textContent = "Tidak ada data valid terbaca. Cek format (nama; varian; harga; stok)."; $("#bulkApplyBtn").disabled = true; $("#bulkPreview").innerHTML=""; return; }
+    renderBulkPreview();
+  });
+  $("#bulkApplyBtn").addEventListener("click", ()=>{
+    if(!working) { toast("Buka editor event dulu"); return; }
+    if(!working.items) working.items = [];
+    const existing = new Set(working.items.map(i=>i.name.toLowerCase()));
+    let added=0, skipped=0, withImg=0;
+    for(const it of bulkParsed){
+      if(existing.has(it.name.toLowerCase())){ skipped++; continue; }
+      const m = mediaFiles.get(normName(it.name));
+      working.items.push({
+        id: "it-" + Date.now() + "-" + Math.floor(Math.random()*9999),
+        name: it.name, variant: it.variant, price: it.price,
+        stock: isNaN(it.stock)?-1:it.stock,
+        img: m ? m.dataUrl : (it.img||"")
+      });
+      if(m) withImg++;
+      added++;
     }
     renderItems(working.items);
-    toast(`${applied} foto diterapkan. Klik "Simpan event" untuk menyimpan.`);
-    mediaQueue = []; $("#mediaPreview").innerHTML=""; $("#mediaApplyBtn").disabled=true; $("#mediaStatus").textContent="";
-    $("#mediaInput").value = "";
+    toast(`Ditambahkan ${added} item${withImg?` (${withImg} dengan foto)`:""}${skipped?`, ${skipped} duplikat dilewati`:""}. Klik "Simpan event".`);
+    $("#bulkInput").value=""; bulkParsed=[]; mediaFiles.clear(); $("#bulkPreview").innerHTML=""; $("#bulkApplyBtn").disabled=true;
+    $("#bulkFile").value=""; $("#mediaInput").value=""; $("#mediaStatus").textContent="";
   });
 
   /* ---------- init ---------- */
